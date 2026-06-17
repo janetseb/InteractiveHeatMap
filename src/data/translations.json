@@ -1,0 +1,82 @@
+{
+  "EN": {
+    "nav": {
+      "appName": "HeatIslanders"
+    },
+    "landing": {
+      "title": "Explore Bamberg on foot or by bike",
+      "subtitle": "Discover hiking and cycling trails through forests, riverside paths, and historic hills — for every pace and experience level.",
+      "cta": "Explore the map →"
+    },
+    "sidebar": {
+      "createRoute": "Create a Route",
+      "filters": "Filters",
+      "resetAll": "Reset all",
+      "trailType": "Trail type",
+      "maxLength": "Max trail length",
+      "trails": "Trails",
+      "noTrails": "No trails match your filters.",
+      "length": "length",
+      "avgHeat": "avg heat",
+      "hotspot": "Hotspot at",
+      "km": "km",
+      "heatDot": "heat",
+      "fullProfile": "Full profile",
+      "kondition": "Kondition",
+      "technik": "Technik",
+      "erlebniswert": "Erlebniswert",
+      "hitzetauglich": "Hitzetauglich",
+      "temperaturprofil": "Temperaturprofil",
+      "lengthLabel": "Length",
+      "heatOffset": "Heat offset",
+      "type": "Type"
+    },
+    "trailTypes": {
+      "All": "All",
+      "Walking": "Walking",
+      "Cycling": "Cycling",
+      "Running": "Running"
+    },
+    "searchPlaceholder": "Search trails in Bamberg" 
+  },
+  "DE": {
+    "nav": {
+      "appName": "HeatIslanders"
+    },
+    "landing": {
+      "title": "Bamberg zu Fuß oder mit dem Rad erkunden",
+      "subtitle": "Entdecke Wander- und Radwege durch Wälder, Flussufer und historische Hügel – für jedes Tempo und jedes Erfahrungsniveau.",
+      "cta": "Karte erkunden →"
+    },
+    "sidebar": {
+      "createRoute": "Route erstellen",
+      "filters": "Filter",
+      "resetAll": "Zurücksetzen",
+      "trailType": "Wegtyp",
+      "maxLength": "Maximale Weglänge",
+      "trails": "Wege",
+      "noTrails": "Keine Wege entsprechen deinen Filtern.",
+      "length": "Länge",
+      "avgHeat": "Ø Hitze",
+      "hotspot": "Hotspot bei",
+      "km": "km",
+      "heatDot": "Hitze",
+      "fullProfile": "Vollständiges Profil",
+      "kondition": "Kondition",
+      "technik": "Technik",
+      "erlebniswert": "Erlebniswert",
+      "hitzetauglich": "Hitzetauglich",
+      "temperaturprofil": "Temperaturprofil",
+      "lengthLabel": "Länge",
+      "heatOffset": "Hitzeversatz",
+      "type": "Typ"
+    },
+    "trailTypes": {
+      "All": "Alle",
+      "Walking": "Wandern",
+      "Cycling": "Radfahren",
+      "Running": "Laufen"
+    },
+    "searchPlaceholder": "Wege in Bamberg suchen" 
+  }
+}
