@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import './app.css'
+import './App.css'
 import LandingPage from './components/LandingPage'
 import Map from './components/Map'
 import Sidebar from './components/Sidebar'
@@ -41,7 +41,7 @@ export default function App() {
 
   // Fetches the full trail list once on mount. Trails are filtered
   useEffect(() => {
-    fetch('http://localhost:3001/api/trails')
+    fetch(`${import.meta.env.VITE_API_URL}/api/trails`)
       .then(r => r.json())
       .then(data => setTrails(data))
       .catch(() => {
