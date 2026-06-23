@@ -25,14 +25,54 @@ const LAYERS = {
 }
 
 const TRAIL_COLORS = {
-  cycling: '#0EA5E9',
-  hiking: '#14B8A6',
+  cycling: '#00A89D',
+  hiking: '#00A89D',
 }
-const TRAIL_COLOR_DEFAULT = '#64748b'
-const TRAIL_COLOR_SELECTED = '#f59e0b'
+const TRAIL_COLOR_DEFAULT = '#00A89D'
+const TRAIL_COLOR_SELECTED = '#18D6C7'
 
 // UV index thresholds per the WHO/EPA standard scale, used to color the
 // UV badge in the weather card.
+
+function weatherIcon(temp) {
+  if (temp == null) return '🌡️'
+  if (temp >= 35) return '🌞'
+  if (temp >= 28) return '☀️'
+  if (temp >= 20) return '⛅'
+  return '🌥️'
+}
+
+function weatherCondition(temp, lang) {
+  if (temp == null) return ''
+  if (temp >= 35) return lang === 'DE' ? 'Sehr heiß' : 'Very hot'
+  if (temp >= 28) return lang === 'DE' ? 'Klarer Himmel' : 'Clear sky'
+  if (temp >= 20) return lang === 'DE' ? 'Teilweise bewölkt' : 'Partly cloudy'
+  return lang === 'DE' ? 'Bewölkt' : 'Cloudy'
+}
+
+function wmoIcon(code) {
+  if (code == null) return '🌡️'
+  if (code === 0) return '☀️'
+  if (code <= 2) return '⛅'
+  if (code <= 3) return '☁️'
+  if (code <= 49) return '🌫️'
+  if (code <= 59) return '🌦️'
+  if (code <= 69) return '🌧️'
+  if (code <= 79) return '🌨️'
+  if (code <= 84) return '🌧️'
+  if (code <= 99) return '⛈️'
+  return '🌡️'
+}
+
+function uvLabel(uv) {
+  if (uv == null) return '—'
+  if (uv < 3) return 'Niedrig'
+  if (uv < 6) return 'Moderat'
+  if (uv < 8) return 'Hoch'
+  if (uv < 11) return 'Sehr hoch'
+  return 'Extrem'
+}
+
 function uvColor(uv) {
   if (uv == null) return '#94a3b8'
   if (uv < 3) return '#16a34a'
@@ -47,13 +87,23 @@ function MapRef({ mapRef }) {
   return null
 }
 
-export default function Map({ filters, lang, trails = [], selectedTrail, onSelectTrail }) {
+export default function Map({ filters, lang, trails = [], selectedTrail, onSelectTrail, flyToRef, weatherUpdateRef, onMapClick, searchOpen }) {
   const [active, setActive] = useState('standard')
   const [locStatus, setLocStatus] = useState('idle')
   const [heatmapVisible, setHeatmapVisible] = useState(true)
   const [weather, setWeather] = useState(null)
+  const [weatherExpanded, setWeatherExpanded] = useState(false)
+  const [forecast, setForecast] = useState([])
+  const [weatherLocation, setWeatherLocation] = useState('Bamberg')
   const mapRef = useRef(null)
+  useEffect(() => {
+    if (flyToRef) flyToRef.current = (lat, lng, zoom = 14) => {
+      if (mapRef.current) mapRef.current.flyTo([lat, lng], zoom, { duration: 1.2 })
+    }
+    if (weatherUpdateRef) weatherUpdateRef.current = (lat, lng, name) => fetchWeather(lat, lng, name)
+  }, [flyToRef, weatherUpdateRef])
   const markerRef = useRef(null)
+  const pinMarkerRef = useRef(null)
   const circleRef = useRef(null)
   const heatLayersRef = useRef([])
   const heatmapLoadedRef = useRef(false)
@@ -64,23 +114,28 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
   // endpoint (rather than current) since it is not reliably available as
   // an instantaneous value across all Open-Meteo models; the first hourly
   // entry corresponds to the current hour.
-  const fetchWeather = (lat, lon) => {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature&hourly=uv_index&timezone=auto`
-
+  const fetchWeather = (lat, lon, locationName = 'Bamberg') => {
+    setWeatherLocation(locationName)
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m&hourly=uv_index&daily=temperature_2m_max,weathercode&timezone=auto`
     fetch(url)
       .then(r => r.json())
       .then(data => {
         const temp = data?.current?.temperature_2m
         const feelsLike = data?.current?.apparent_temperature
+        const humidity = data?.current?.relative_humidity_2m
         const uv = Array.isArray(data?.hourly?.uv_index) ? data.hourly.uv_index[0] : null
-
         if (temp == null && feelsLike == null && uv == null) return
-
-        setWeather({ temp, feelsLike, uv })
+        setWeather({ temp, feelsLike, uv, humidity })
+        if (data?.daily) {
+          const days = data.daily.time.slice(0, 5).map((t, i) => ({
+            date: new Date(t),
+            maxTemp: data.daily.temperature_2m_max[i],
+            code: data.daily.weathercode[i],
+          }))
+          setForecast(days)
+        }
       })
-      .catch(() => {
-        // Weather failures are non-fatal; the card simply does not render.
-      })
+      .catch(() => {})
   }
 
   // Loads weather for Bamberg by default on mount.
@@ -135,7 +190,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
     heatLayersRef.current.forEach(l => l.remove())
     heatLayersRef.current = []
 
-    fetch('http://localhost:3001/api/heatmap')
+    fetch(`${import.meta.env.VITE_API_URL}/api/heatmap`)
       .then(r => r.json())
       .then(data => {
         const halfLat = 0.0050
@@ -164,17 +219,14 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
 
           const layer = window.L.rectangle(bounds, {
             fillColor: color,
-            fillOpacity: 0.5,
+            fillOpacity: 0.4,
             stroke: false,
             weight: 0,
             opacity: 0,
+            interactive: false,
           }).addTo(map)
 
-          layer.bindPopup(`
-  <div style="font-family:Inter,sans-serif;text-align:center;padding:2px 4px;">
-    <div style="font-size:16px;font-weight:700;color:#0f172a">${intensity.toFixed(1)}°C</div>
-  </div>
-`, { minWidth: 60, autoPanPadding: [20, 20] })
+
 
           layers.push(layer)
         })
@@ -199,8 +251,26 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
 
     const filtered = trails.filter(tr =>
       (filters.trailType === 'All' || tr.trail_type === filters.trailType) &&
-      Number(tr.length_km) <= filters.maxLength
+      Number(tr.length_km) <= filters.maxLength &&
+      (filters.heatFilter === 'All' || tr.hitzetauglichkeit >= Number(filters.heatFilter))
     )
+
+    const tempToColor = (temp) => {
+      if (temp < 20) return '#6CC4E8'
+      if (temp < 25) return '#9CD67A'
+      if (temp < 30) return '#F2C66D'
+      if (temp < 35) return '#EE8C5A'
+      return '#DB5B52'
+    }
+
+    const toRad = d => d * Math.PI / 180
+    const distBetween = ([lat1, lon1], [lat2, lon2]) => {
+      const R = 6371000
+      const dLat = toRad(lat2 - lat1)
+      const dLon = toRad(lon2 - lon1)
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    }
 
     filtered.forEach(trail => {
       if (!Array.isArray(trail.waypoints) || trail.waypoints.length < 2) return
@@ -215,10 +285,9 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
       const baseColor = TRAIL_COLORS[trail.trail_type] || TRAIL_COLOR_DEFAULT
       const mainColor = isSelected ? TRAIL_COLOR_SELECTED : baseColor
 
-      // White halo underneath so the colored line reads clearly against any tile style.
       const halo = window.L.polyline(latlngs, {
         color: '#ffffff',
-        weight: isSelected ? 9 : 6,
+        weight: isSelected ? 14 : 12,
         opacity: 0.9,
         lineCap: 'round',
         lineJoin: 'round',
@@ -226,18 +295,31 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
 
       const line = window.L.polyline(latlngs, {
         color: mainColor,
-        weight: isSelected ? 5 : 3.5,
+        weight: isSelected ? 10 : 8,
         opacity: 1,
         lineCap: 'round',
         lineJoin: 'round',
+        dashArray: isSelected ? '12 8' : null,
+        dashOffset: '0',
       }).addTo(map)
+
+      if (isSelected) {
+        let offset = 0
+        const animate = () => {
+          offset -= 1
+          line.setStyle({ dashOffset: String(offset) })
+          line._animFrame = requestAnimationFrame(animate)
+        }
+        line._animFrame = requestAnimationFrame(animate)
+        line._stopAnim = () => cancelAnimationFrame(line._animFrame)
+      }
 
       const handleClick = (e) => {
         window.L.DomEvent.stopPropagation(e)
-        onSelectTrail(isSelected ? null : trail)
+        onSelectTrail(trail)
       }
-      const handleOver = () => { if (!isSelected) { line.setStyle({ weight: 5 }); halo.setStyle({ weight: 8 }) } }
-      const handleOut = () => { if (!isSelected) { line.setStyle({ weight: 3.5 }); halo.setStyle({ weight: 6 }) } }
+      const handleOver = () => { if (!isSelected) { line.setStyle({ weight: 10 }); halo.setStyle({ weight: 14, opacity: 1.0 }) } }
+      const handleOut = () => { if (!isSelected) { line.setStyle({ weight: 8 }); halo.setStyle({ weight: 12, opacity: 0.9 }) } }
 
       line.on('click', handleClick)
       halo.on('click', handleClick)
@@ -248,8 +330,9 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
 
       trailLayersRef.current.push([halo, line])
     })
-  }, [trails, filters, selectedTrail])
+  }, [trails, filters, onSelectTrail])
 
+        
   // Flies the map to fit the selected trail's bounding box.
   useEffect(() => {
     const map = mapRef.current
@@ -265,46 +348,101 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
     map.flyToBounds(bounds, { padding: [60, 60], duration: 1.2 })
   }, [selectedTrail])
 
+  // Place/remove destination pin on trail end point
+  useEffect(() => {
+    const map = mapRef.current
+    if (pinMarkerRef.current) { pinMarkerRef.current.remove(); pinMarkerRef.current = null }
+    if (!map || !selectedTrail) return
+    const wps = selectedTrail.waypoints
+    if (!Array.isArray(wps) || wps.length < 2) return
+    const end = wps[wps.length - 1]
+    const lat = Number(end.lat), lon = Number(end.lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
+    const icon = window.L.divIcon({
+      className: '',
+      html: `<div style="
+        width:28px;height:36px;position:relative;
+      ">
+        <svg viewBox="0 0 28 36" width="28" height="36" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="#00A89D"/>
+          <circle cx="14" cy="14" r="6" fill="white"/>
+        </svg>
+      </div>`,
+      iconSize: [28, 36],
+      iconAnchor: [14, 36],
+    })
+    pinMarkerRef.current = window.L.marker([lat, lon], { icon, zIndexOffset: 1000 }).addTo(map)
+  }, [selectedTrail])
+
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
 
-      {/* Weather card, positioned left of the Heatmap toggle */}
-      {weather && (
-        <div
-          title={lang === 'DE' ? 'Aktuelles Wetter' : 'Current weather'}
-          style={{
-            position: 'absolute', top: 12, right: 280,
-            zIndex: 1000, height: 44, padding: '0 16px',
-            borderRadius: 22, border: 'none',
-            background: 'rgba(255,255,255,0.92)',
-            backdropFilter: 'blur(12px)',
-            display: 'flex', alignItems: 'center', gap: 10,
-            boxShadow: '0 4px 16px rgba(15,23,42,0.10)',
-            fontFamily: 'Inter, sans-serif',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {weather.temp != null && (
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-              {Math.round(weather.temp)}°C
-            </span>
-          )}
-          {weather.feelsLike != null && (
-            <span style={{ fontSize: 12, color: '#64748b' }}>
-              {lang === 'DE' ? 'gef.' : 'feels'} {Math.round(weather.feelsLike)}°C
-            </span>
-          )}
-          {weather.uv != null && (
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: '2px 7px',
-              borderRadius: 8, color: '#fff', background: uvColor(weather.uv),
-            }}>
-              UV {Math.round(weather.uv)}
-            </span>
+      {/* Weather pill + expandable card */}
+      {weather && !searchOpen && (
+        <div style={{ position: 'absolute', top: 12, right: 260, zIndex: 999, fontFamily: 'Inter, sans-serif' }}>
+          {!weatherExpanded ? (
+            // Collapsed pill
+            <div
+              onClick={() => setWeatherExpanded(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
+                borderRadius: 22, height: 44, padding: '0 16px',
+                boxShadow: '0 4px 16px rgba(15,23,42,0.10)',
+                cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{weatherIcon(weather.temp)}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+                {weather.temp != null ? `${Math.round(weather.temp)}°` : '—'}
+              </span>
+            </div>
+          ) : (
+            // Expanded card
+            <div
+              onClick={() => setWeatherExpanded(false)}
+              style={{
+                background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)',
+                borderRadius: 20, padding: '16px 20px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.13)',
+                cursor: 'pointer', userSelect: 'none', minWidth: 180,
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 10 }}>
+                {weatherLocation}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 34 }}>{weatherIcon(weather.temp)}</span>
+                <span style={{ fontSize: 30, fontWeight: 700, color: '#0f172a' }}>
+                  {weather.temp != null ? `${Math.round(weather.temp)}°C` : '—'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {weather.feelsLike != null && (
+                  <div style={{ fontSize: 13, color: '#475569' }}>
+                    Gefühlt <strong>{Math.round(weather.feelsLike)}°C</strong>
+                  </div>
+                )}
+                {weather.humidity != null && (
+                  <div style={{ fontSize: 13, color: '#475569' }}>
+                    Luftfeuchtigkeit <strong>{weather.humidity}%</strong>
+                  </div>
+                )}
+                {weather.uv != null && (
+                  <div style={{ fontSize: 13, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    UV <span style={{ fontWeight: 700, padding: '1px 7px', borderRadius: 6, fontSize: 11, color: '#fff', background: uvColor(weather.uv) }}>
+                      {uvLabel(weather.uv)}
+                    </span>
+                  </div>
+                )}
+                <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>
+                  {weatherCondition(weather.temp, 'DE')}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
-
       {/* Heatmap toggle, positioned left of the Filter button */}
       <button
         onClick={() => {
@@ -320,7 +458,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
           position: 'absolute', top: 12, right: 140,
           zIndex: 1000, height: 44, padding: '0 18px',
           borderRadius: 22, border: 'none',
-          background: heatmapVisible ? '#0EA5E9' : 'rgba(255,255,255,0.92)',
+          background: heatmapVisible ? '#14B8A6' : '#F8F8F6',
           backdropFilter: 'blur(12px)',
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -384,6 +522,18 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
             heatmapLoadedRef.current = true
             setTimeout(() => loadHeatmap(mapInstance.target), 500)
           }
+          mapInstance.target.on('click', (e) => {
+            if (onMapClick) onMapClick()
+            setWeatherExpanded(false)
+            const { lat, lng } = e.latlng
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+              .then(r => r.json())
+              .then(d => {
+                const name = d.address?.city || d.address?.town || d.address?.village || d.address?.suburb || 'Dieser Ort'
+                fetchWeather(lat, lng, name)
+              })
+              .catch(() => fetchWeather(lat, lng, 'Dieser Ort'))
+          })
         }}
       >
         <TileLayer

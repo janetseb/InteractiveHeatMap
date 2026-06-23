@@ -16,7 +16,7 @@
       "maxLength": "Max trail length",
       "trails": "Trails",
       "noTrails": "No trails match your filters.",
-      "length": "length",
+      "length": "Length",
       "avgHeat": "avg heat",
       "hotspot": "Hotspot at",
       "km": "km",
@@ -26,18 +26,18 @@
       "technik": "Technik",
       "erlebniswert": "Erlebniswert",
       "hitzetauglich": "Hitzetauglich",
-      "temperaturprofil": "Temperaturprofil",
+      "temperaturprofil": "Comfort Profile",
       "lengthLabel": "Length",
       "heatOffset": "Heat offset",
       "type": "Type"
     },
     "trailTypes": {
       "All": "All",
-      "Walking": "Walking",
-      "Cycling": "Cycling",
-      "Running": "Running"
+      "hiking": "Hiking",
+      "cycling": "Cycling",
+      "running": "Running"
     },
-    "searchPlaceholder": "Search trails in Bamberg" 
+    "searchPlaceholder": "Search trails in Bamberg"
   },
   "DE": {
     "nav": {
@@ -66,17 +66,17 @@
       "technik": "Technik",
       "erlebniswert": "Erlebniswert",
       "hitzetauglich": "Hitzetauglich",
-      "temperaturprofil": "Temperaturprofil",
+      "temperaturprofil": "Komfortprofil",
       "lengthLabel": "Länge",
       "heatOffset": "Hitzeversatz",
       "type": "Typ"
     },
     "trailTypes": {
       "All": "Alle",
-      "Walking": "Wandern",
-      "Cycling": "Radfahren",
-      "Running": "Laufen"
+      "hiking": "Wandern",
+      "cycling": "Radfahren",
+      "running": "Laufen"
     },
-    "searchPlaceholder": "Wege in Bamberg suchen" 
+    "searchPlaceholder": "Wege in Bamberg suchen"
   }
 }

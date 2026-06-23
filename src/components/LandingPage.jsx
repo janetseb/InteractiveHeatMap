@@ -18,9 +18,7 @@ const COPY = {
   },
 }
 
-// Full-screen landing page shown before the user enters the map.
-// Content sits in the upper-left quadrant so the river, cathedral, and
-// cyclist/runner on the right half of the photo stay unobscured.
+
 export default function LandingPage({ onEnter, lang, setLang }) {
   const t = COPY[lang] || COPY.DE
 

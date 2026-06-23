@@ -1,15 +1,10 @@
 require('dotenv').config()
-
 const express = require('express')
 const { Pool } = require('pg')
 const cors = require('cors')
-
 const app = express()
 app.use(cors())
 
-// Database connection pool. Credentials are read from environment
-// variables (see .env.example) rather than hardcoded, since this file is
-// committed to version control.
 const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -21,8 +16,6 @@ const pool = new Pool({
     : false,
 })
 
-// Returns land-surface-temperature grid points within the Bamberg area,
-// used to render the heatmap overlay on the map.
 app.get('/api/heatmap', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -39,9 +32,6 @@ app.get('/api/heatmap', async (req, res) => {
   }
 })
 
-// Returns all trails with their waypoints, ratings, and bounding boxes.
-// Geometry (the PostGIS geom column) is intentionally excluded since the
-// frontend consumes the plain waypoints array instead.
 app.get('/api/trails', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -58,11 +48,54 @@ app.get('/api/trails', async (req, res) => {
         bbox_north,
         bbox_south,
         bbox_east,
-        bbox_west
+        bbox_west,
+        mean_temperature,
+        hitzetauglichkeit,
+        heat_profile,
+        elevation_profile
       FROM trails
       ORDER BY id
     `)
     res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
+app.get('/api/trails/:id/gpx', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT trail_name, gpx_file FROM trails WHERE id = $1',
+      [req.params.id]
+    )
+    if (!result.rows.length || !result.rows[0].gpx_file) {
+      return res.status(404).json({ error: 'GPX not found' })
+    }
+    const { trail_name, gpx_file } = result.rows[0]
+    const filename = trail_name.replace(/[^a-z0-9]/gi, '_') + '.gpx'
+    res.setHeader('Content-Type', 'application/gpx+xml')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.send(gpx_file)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/trails/:id/kml', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT trail_name, kml_file FROM trails WHERE id = $1',
+      [req.params.id]
+    )
+    if (!result.rows.length || !result.rows[0].kml_file) {
+      return res.status(404).json({ error: 'KML not found' })
+    }
+    const { trail_name, kml_file } = result.rows[0]
+    const filename = trail_name.replace(/[^a-z0-9]/gi, '_') + '.kml'
+    res.setHeader('Content-Type', 'application/vnd.google-earth.kml+xml')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.send(kml_file)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
