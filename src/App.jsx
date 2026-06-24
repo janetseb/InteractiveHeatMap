@@ -4,7 +4,6 @@ import LandingPage from './components/LandingPage'
 import Map from './components/Map'
 import Sidebar from './components/Sidebar'
 
-// Default filter state applied on first load and on reset.
 const DEFAULT_FILTERS = {
   trailType: 'All',
   maxLength: 30,
@@ -13,8 +12,6 @@ const DEFAULT_FILTERS = {
 }
 
 export default function App() {
-  // Persisted across refreshes within the same tab via sessionStorage, so a
-  // reload while on the map view doesn't bounce the user back to the landing page.
   const [showMap, setShowMap] = useState(() => sessionStorage.getItem('mobi_showMap') === 'true')
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [lang, setLang] = useState('DE')
@@ -29,16 +26,18 @@ export default function App() {
   const collapseSearchRef = useRef(null)
   const onMapClick = () => { if (collapseSearchRef.current) collapseSearchRef.current() }
 
-  // Transitions from the landing page to the map view and registers a
-  // history entry so the browser back button returns to the landing page.
+  // Moved outside JSX — hooks cannot be called inside JSX
+  const handleSelectTrail = useCallback((trail) => {
+    setSelectedTrail(prev => prev?.id === trail?.id ? null : trail)
+    if (trail) setSidebarOpen(true)
+  }, [])
+
   const enterMap = () => {
     history.pushState({ page: 'map' }, '')
     sessionStorage.setItem('mobi_showMap', 'true')
     setShowMap(true)
   }
 
-  // Handles the browser back/forward navigation triggered by enterMap's
-  // pushState call, returning the user to the landing page.
   useEffect(() => {
     const handlePop = () => {
       sessionStorage.removeItem('mobi_showMap')
@@ -48,15 +47,11 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePop)
   }, [])
 
-  // Fetches the full trail list once on mount. Trails are filtered
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/trails`)
       .then(r => r.json())
       .then(data => setTrails(data))
-      .catch(() => {
-        // Trail fetch failures are non-fatal; the map and sidebar simply
-        // render with an empty trail list until the backend is reachable.
-      })
+      .catch(() => {})
   }, [])
 
   if (!showMap) {
@@ -70,7 +65,7 @@ export default function App() {
         lang={lang}
         trails={trails}
         selectedTrail={selectedTrail}
-        onSelectTrail={useCallback((trail) => { setSelectedTrail(prev => { if (prev?.id === trail?.id) return null; return trail }); if (trail) setSidebarOpen(true) }, [])}
+        onSelectTrail={handleSelectTrail}
         flyToRef={flyToRef}
         weatherUpdateRef={weatherUpdateRef}
         onMapClick={onMapClick}
