@@ -5,13 +5,19 @@ const cors = require('cors')
 const app = express()
 app.use(cors())
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' })
+})
+
+
+
 const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: process.env.DB_HOST?.includes('render.com')
+  ssl: process.env.DB_SSL === 'true'   
     ? { rejectUnauthorized: false }
     : false,
 })
@@ -102,4 +108,4 @@ app.get('/api/trails/:id/kml', async (req, res) => {
 })
 
 const PORT = process.env.PORT || process.env.API_PORT || 3001
-app.listen(PORT)
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
