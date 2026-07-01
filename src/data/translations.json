@@ -4,9 +4,12 @@
       "appName": "HeatIslanders"
     },
     "landing": {
+      "titleLine1": "Explore Bamberg",
+      "titleLine2": "Trails in and around the city",
       "title": "Explore Bamberg on foot or by bike",
       "subtitle": "Discover hiking and cycling trails through forests, riverside paths, and historic hills — for every pace and experience level.",
-      "cta": "Explore the map →"
+      "cta": "Explore the map",
+      "footerLeft": "© 2026 HeatIslanders"
     },
     "sidebar": {
       "createRoute": "Create a Route",
@@ -22,14 +25,21 @@
       "km": "km",
       "heatDot": "heat",
       "fullProfile": "Full profile",
-      "kondition": "Kondition",
-      "technik": "Technik",
-      "erlebniswert": "Erlebniswert",
-      "hitzetauglich": "Hitzetauglich",
+      "kondition": "Condition",
+      "technik": "Technique",
+      "erlebniswert": "Experience Value",
+      "hitzetauglich": "Heat Tolerance",
       "temperaturprofil": "Comfort Profile",
       "lengthLabel": "Length",
       "heatOffset": "Heat offset",
-      "type": "Type"
+      "type": "Type",
+      "searching": "Searching...",
+      "heatSuitability": "Heat suitability",
+      "heatSuitabilityLow": "1 (suitable)",
+      "heatSuitabilityHigh": "5 (very suitable)",
+      "start": "Start",
+      "end": "End",
+      "elevationProfile": "Elevation profile"
     },
     "trailTypes": {
       "All": "All",
@@ -37,16 +47,50 @@
       "cycling": "Cycling",
       "running": "Running"
     },
-    "searchPlaceholder": "Search trails in Bamberg"
+    "searchPlaceholder": "Search places in Bamberg",
+    "map": {
+      "heatmapLabel": "Heatmap",
+      "showHeatmap": "Show heatmap",
+      "hideHeatmap": "Hide heatmap",
+      "locationDenied": "Location access denied",
+      "thisPlace": "This place"
+    },
+    "weather": {
+      "feelsLike": "Feels like",
+      "humidity": "Humidity",
+      "uv": "UV",
+      "uvLow": "Low",
+      "uvModerate": "Moderate",
+      "uvHigh": "High",
+      "uvVeryHigh": "Very high",
+      "uvExtreme": "Extreme",
+      "veryHot": "Very hot",
+      "clearSky": "Clear sky",
+      "partlyCloudy": "Partly cloudy",
+      "cloudy": "Cloudy"
+    },
+    "mapStyles": {
+      "title": "Map Styles",
+      "streets": "Streets",
+      "cyclingRoutes": "Cycling Routes",
+      "topographic": "Topographic"
+    },
+    "legend": {
+      "cool": "Cool",
+      "hot": "Hot"
+    }
   },
   "DE": {
     "nav": {
       "appName": "HeatIslanders"
     },
     "landing": {
+      "titleLine1": "Bamberg entdecken",
+      "titleLine2": "Wege in- und außerhalb der Stadt",
       "title": "Bamberg zu Fuß oder mit dem Rad erkunden",
       "subtitle": "Entdecke Wander- und Radwege durch Wälder, Flussufer und historische Hügel – für jedes Tempo und jedes Erfahrungsniveau.",
-      "cta": "Karte erkunden →"
+      "cta": "Karte erkunden",
+      "footerLeft": "© 2026 HeatIslanders"
     },
     "sidebar": {
       "createRoute": "Route erstellen",
@@ -69,7 +113,14 @@
       "temperaturprofil": "Komfortprofil",
       "lengthLabel": "Länge",
       "heatOffset": "Hitzeversatz",
-      "type": "Typ"
+      "type": "Typ",
+      "searching": "Suche...",
+      "heatSuitability": "Hitzetauglichkeit",
+      "heatSuitabilityLow": "1 (geeignet)",
+      "heatSuitabilityHigh": "5 (Sehr geeignet)",
+      "start": "Start",
+      "end": "Ende",
+      "elevationProfile": "Höhenprofil"
     },
     "trailTypes": {
       "All": "Alle",
@@ -77,6 +128,37 @@
       "cycling": "Radfahren",
       "running": "Laufen"
     },
-    "searchPlaceholder": "Wege in Bamberg suchen"
+    "searchPlaceholder": "Orte in Bayern suchen",
+    "map": {
+      "heatmapLabel": "Hitzekarte",
+      "showHeatmap": "Hitzekarte anzeigen",
+      "hideHeatmap": "Hitzekarte ausblenden",
+      "locationDenied": "Standortzugriff verweigert",
+      "thisPlace": "Dieser Ort"
+    },
+    "weather": {
+      "feelsLike": "Gefühlt",
+      "humidity": "Luftfeuchtigkeit",
+      "uv": "UV",
+      "uvLow": "Niedrig",
+      "uvModerate": "Moderat",
+      "uvHigh": "Hoch",
+      "uvVeryHigh": "Sehr hoch",
+      "uvExtreme": "Extrem",
+      "veryHot": "Sehr heiß",
+      "clearSky": "Klarer Himmel",
+      "partlyCloudy": "Teilweise bewölkt",
+      "cloudy": "Bewölkt"
+    },
+    "mapStyles": {
+      "title": "Kartenstile",
+      "streets": "Straßen",
+      "cyclingRoutes": "Radwege",
+      "topographic": "Topografisch"
+    },
+    "legend": {
+      "cool": "Kühl",
+      "hot": "Heiß"
+    }
   }
 }

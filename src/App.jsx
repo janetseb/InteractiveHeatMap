@@ -8,7 +8,7 @@ import Sidebar from './components/Sidebar'
 const DEFAULT_FILTERS = {
   trailType: 'All',
   maxLength: 30,
-  heatFilter: 'All',
+  minHeat: 1,
   search: '',
 }
 
@@ -27,7 +27,12 @@ export default function App() {
   const weatherUpdateRef = useRef(null)
   const onWeatherUpdate = (lat, lng, name) => { if (weatherUpdateRef.current) weatherUpdateRef.current(lat, lng, name) }
   const collapseSearchRef = useRef(null)
-  const onMapClick = () => { if (collapseSearchRef.current) collapseSearchRef.current() }
+  const onMapClick = useCallback(() => { if (collapseSearchRef.current) collapseSearchRef.current() }, [])
+  
+  const handleSelectTrail = useCallback((trail) => { 
+  setSelectedTrail(prev => { if (prev?.id === trail?.id) return null; return trail })
+  if (trail) setSidebarOpen(true) 
+  }, [])
 
   // Transitions from the landing page to the map view and registers a
   // history entry so the browser back button returns to the landing page.
@@ -70,26 +75,26 @@ export default function App() {
         lang={lang}
         trails={trails}
         selectedTrail={selectedTrail}
-        onSelectTrail={useCallback((trail) => { setSelectedTrail(prev => { if (prev?.id === trail?.id) return null; return trail }); if (trail) setSidebarOpen(true) }, [])}
+        onSelectTrail={handleSelectTrail}
         flyToRef={flyToRef}
         weatherUpdateRef={weatherUpdateRef}
         onMapClick={onMapClick}
         searchOpen={searchOpen}
       />
       <Sidebar
-        filters={filters}
-        onFiltersChange={setFilters}
-        lang={lang}
-        trails={trails}
-        selectedTrail={selectedTrail}
-        onSelectTrail={setSelectedTrail}
-        sidebarOpen={sidebarOpen}
-        onSidebarOpen={setSidebarOpen}
-        flyTo={flyTo}
-        onWeatherUpdate={onWeatherUpdate}
-        collapseSearchRef={collapseSearchRef}
-        onSearchToggle={setSearchOpen}
-      />
+  filters={filters}
+  onFiltersChange={setFilters}
+  lang={lang}
+  trails={trails}
+  selectedTrail={selectedTrail}
+  onSelectTrail={handleSelectTrail}
+  sidebarOpen={sidebarOpen}
+  onSidebarOpen={setSidebarOpen}
+  flyTo={flyTo}
+  onWeatherUpdate={onWeatherUpdate}
+  collapseSearchRef={collapseSearchRef}
+  onSearchToggle={setSearchOpen}
+/>
     </div>
   )
 }

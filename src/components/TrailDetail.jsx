@@ -99,7 +99,7 @@ export default function TrailDetail({ trail, onClose, lang = 'EN' }) {
           </div>
           <HeatProfileBar segments={trail.heat_profile} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginTop: 3 }}>
-            <span>Start</span><span>End</span>
+            <span>{t.sidebar.start}</span><span>{t.sidebar.end}</span>
           </div>
         </div>
 

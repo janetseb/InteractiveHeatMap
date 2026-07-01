@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useMap } from 'react-leaflet'
+import translations from '../data/translations.json'
 import './MapControls.css'
 
-const STYLES = [
-  { key: 'standard', label: 'Standard', preview: 'https://tile.openstreetmap.org/12/2179/1422.png' },
-  { key: 'cyclosm', label: 'CyclOSM', preview: 'https://tile.openstreetmap.org/12/2179/1422.png' },
-  { key: 'topo', label: 'Topo', preview: 'https://tile.opentopomap.org/12/2179/1422.png' },
+const STYLE_KEYS = [
+  { key: 'standard', labelKey: 'streets', preview: 'https://tile.openstreetmap.org/12/2179/1422.png' },
+  { key: 'cyclosm', labelKey: 'cyclingRoutes', preview: 'https://tile.waymarkedtrails.org/cycling/12/2179/1422.png' },
+  { key: 'topo', labelKey: 'topographic', preview: 'https://tile.opentopomap.org/12/2179/1422.png' },
 ]
+
 
 export function Compass() {
   return (
@@ -41,15 +43,16 @@ export function ZoomControl() {
   )
 }
 
-export default function MapStyles({ active, onSelect }) {
+export default function MapStyles({ active, onSelect, lang = 'EN' }) {
   const [open, setOpen] = useState(false)
+  const t = translations[lang]
 
   return (
     <>
       <button
         className="map-controls__btn"
         onClick={() => setOpen(!open)}
-        title="Map Styles"
+        title={t.mapStyles.title}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.8">
           <polygon points="12 2 2 7 12 12 22 7 12 2"/>
@@ -60,29 +63,29 @@ export default function MapStyles({ active, onSelect }) {
 
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 2001, background: 'transparent' }} />
+          <div onClick={() => setOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 2100, background: 'transparent' }} />
           <div style={{
-            position: 'absolute', bottom: 96, left: 12,
-            zIndex: 2002, background: 'rgba(255,255,255,0.97)',
+            position: 'absolute', bottom: 57, left: 54,
+            zIndex: 2099, background: 'rgba(255,255,255,0.97)',
             backdropFilter: 'blur(16px)',
             borderRadius: 18, boxShadow: '0 8px 32px rgba(15,23,42,0.16)',
             padding: 16, width: 280, fontFamily: 'Inter, sans-serif',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Map Styles</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{t.mapStyles.title}</span>
               <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              {STYLES.map(style => (
+              {STYLE_KEYS.map(style => (
                 <div key={style.key} onClick={() => { onSelect(style.key); setOpen(false) }} style={{ cursor: 'pointer', textAlign: 'center', flex: 1 }}>
                   <div style={{
                     width: '100%', aspectRatio: '1', borderRadius: 12, overflow: 'hidden',
                     border: active === style.key ? '3px solid #0EA5E9' : '2px solid #e2e8f0',
                     marginBottom: 6,
                   }}>
-                    <img src={style.preview} alt={style.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={style.preview} alt={t.mapStyles[style.labelKey]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: active === style.key ? 700 : 500, color: '#0f172a' }}>{style.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: active === style.key ? 700 : 500, color: '#0f172a' }}>{t.mapStyles[style.labelKey]}</span>
                 </div>
               ))}
             </div>

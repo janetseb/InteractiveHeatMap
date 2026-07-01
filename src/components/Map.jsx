@@ -2,34 +2,37 @@ import { useState, useRef, useEffect } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import MapStyles, { Compass, ZoomControl } from './MapStyles'
 import Legend from './Legend'
+import translations from '../data/translations.json'
 import './MapControls.css'
 
 const BAMBERG = [49.8988, 10.9028]
 
 const LAYERS = {
   cyclosm: {
-    label: 'CyclOSM',
+    label: 'Routes',
     url: 'https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
   topo: {
-    label: 'Topo',
+    label: 'Topographic',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
   standard: {
-    label: 'Standard',
+    label: 'Streets',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
 }
 
 const TRAIL_COLORS = {
-  cycling: '#00A89D',
+  cycling: '#6366F1',
   hiking: '#00A89D',
 }
-const TRAIL_COLOR_DEFAULT = '#00A89D'
-const TRAIL_COLOR_SELECTED = '#18D6C7'
+const TRAIL_COLOR_SELECTED = {
+  cycling: '#6366F1',
+  hiking: '#18D6C7',
+}
 
 // UV index thresholds per the WHO/EPA standard scale, used to color the
 // UV badge in the weather card.
@@ -42,12 +45,12 @@ function weatherIcon(temp) {
   return '🌥️'
 }
 
-function weatherCondition(temp, lang) {
+function weatherCondition(temp, t) {
   if (temp == null) return ''
-  if (temp >= 35) return lang === 'DE' ? 'Sehr heiß' : 'Very hot'
-  if (temp >= 28) return lang === 'DE' ? 'Klarer Himmel' : 'Clear sky'
-  if (temp >= 20) return lang === 'DE' ? 'Teilweise bewölkt' : 'Partly cloudy'
-  return lang === 'DE' ? 'Bewölkt' : 'Cloudy'
+  if (temp >= 35) return t.weather.veryHot
+  if (temp >= 28) return t.weather.clearSky
+  if (temp >= 20) return t.weather.partlyCloudy
+  return t.weather.cloudy
 }
 
 function wmoIcon(code) {
@@ -64,13 +67,13 @@ function wmoIcon(code) {
   return '🌡️'
 }
 
-function uvLabel(uv) {
+function uvLabel(uv, t) {
   if (uv == null) return '—'
-  if (uv < 3) return 'Niedrig'
-  if (uv < 6) return 'Moderat'
-  if (uv < 8) return 'Hoch'
-  if (uv < 11) return 'Sehr hoch'
-  return 'Extrem'
+  if (uv < 3) return t.weather.uvLow
+  if (uv < 6) return t.weather.uvModerate
+  if (uv < 8) return t.weather.uvHigh
+  if (uv < 11) return t.weather.uvVeryHigh
+  return t.weather.uvExtreme
 }
 
 function uvColor(uv) {
@@ -88,6 +91,7 @@ function MapRef({ mapRef }) {
 }
 
 export default function Map({ filters, lang, trails = [], selectedTrail, onSelectTrail, flyToRef, weatherUpdateRef, onMapClick, searchOpen }) {
+  const t = translations[lang] || translations.EN
   const [active, setActive] = useState('standard')
   const [locStatus, setLocStatus] = useState('idle')
   const [heatmapVisible, setHeatmapVisible] = useState(true)
@@ -250,10 +254,10 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
     trailLayersRef.current = []
 
     const filtered = trails.filter(tr =>
-      (filters.trailType === 'All' || tr.trail_type === filters.trailType) &&
-      Number(tr.length_km) <= filters.maxLength &&
-      (filters.heatFilter === 'All' || tr.hitzetauglichkeit >= Number(filters.heatFilter))
-    )
+  (filters.trailType === 'All' || tr.trail_type === filters.trailType) &&
+  Number(tr.length_km) <= filters.maxLength &&
+  tr.hitzetauglichkeit >= (filters.minHeat || 1)
+)
 
     const tempToColor = (temp) => {
       if (temp < 20) return '#6CC4E8'
@@ -283,25 +287,27 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
 
       const isSelected = selectedTrail?.id === trail.id
       const baseColor = TRAIL_COLORS[trail.trail_type] || TRAIL_COLOR_DEFAULT
-      const mainColor = isSelected ? TRAIL_COLOR_SELECTED : baseColor
+      const mainColor = isSelected ? TRAIL_COLOR_SELECTED[trail.trail_type] : baseColor
 
+    
       const halo = window.L.polyline(latlngs, {
-        color: '#ffffff',
-        weight: isSelected ? 14 : 12,
-        opacity: 0.9,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }).addTo(map)
+      color: '#ffffff',
+      weight: isSelected ? 8 : 6,
+      opacity: 0.9,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: trail.trail_type === 'cycling' ? '8 4' : null,
+    }).addTo(map)
 
-      const line = window.L.polyline(latlngs, {
-        color: mainColor,
-        weight: isSelected ? 10 : 8,
-        opacity: 1,
-        lineCap: 'round',
-        lineJoin: 'round',
-        dashArray: isSelected ? '12 8' : null,
-        dashOffset: '0',
-      }).addTo(map)
+    const line = window.L.polyline(latlngs, {
+      color: mainColor,
+      weight: isSelected ? 5 : 3,
+      opacity: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: isSelected ? '6 4' : (trail.trail_type === 'cycling' ? '8 4' : null),
+      dashOffset: '0',
+    }).addTo(map)
 
       if (isSelected) {
         let offset = 0
@@ -318,8 +324,8 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
         window.L.DomEvent.stopPropagation(e)
         onSelectTrail(trail)
       }
-      const handleOver = () => { if (!isSelected) { line.setStyle({ weight: 10 }); halo.setStyle({ weight: 14, opacity: 1.0 }) } }
-      const handleOut = () => { if (!isSelected) { line.setStyle({ weight: 8 }); halo.setStyle({ weight: 12, opacity: 0.9 }) } }
+      const handleOver = () => { if (!isSelected) { line.setStyle({ weight: 5 }); halo.setStyle({ weight: 8, opacity: 1.0 }) } }
+      const handleOut = () => { if (!isSelected) { line.setStyle({ weight: 3 }); halo.setStyle({ weight: 6, opacity: 0.9 }) } }
 
       line.on('click', handleClick)
       halo.on('click', handleClick)
@@ -330,7 +336,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
 
       trailLayersRef.current.push([halo, line])
     })
-  }, [trails, filters, onSelectTrail])
+  }, [trails, filters, selectedTrail])
 
         
   // Flies the map to fit the selected trail's bounding box.
@@ -420,23 +426,23 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {weather.feelsLike != null && (
                   <div style={{ fontSize: 13, color: '#475569' }}>
-                    Gefühlt <strong>{Math.round(weather.feelsLike)}°C</strong>
+                    {t.weather.feelsLike} <strong>{Math.round(weather.feelsLike)}°C</strong>
                   </div>
                 )}
                 {weather.humidity != null && (
                   <div style={{ fontSize: 13, color: '#475569' }}>
-                    Luftfeuchtigkeit <strong>{weather.humidity}%</strong>
+                    {t.weather.humidity} <strong>{weather.humidity}%</strong>
                   </div>
                 )}
                 {weather.uv != null && (
                   <div style={{ fontSize: 13, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    UV <span style={{ fontWeight: 700, padding: '1px 7px', borderRadius: 6, fontSize: 11, color: '#fff', background: uvColor(weather.uv) }}>
-                      {uvLabel(weather.uv)}
+                    {t.weather.uv} <span style={{ fontWeight: 700, padding: '1px 7px', borderRadius: 6, fontSize: 11, color: '#fff', background: uvColor(weather.uv) }}>
+                      {uvLabel(weather.uv, t)}
                     </span>
                   </div>
                 )}
                 <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>
-                  {weatherCondition(weather.temp, 'DE')}
+                  {weatherCondition(weather.temp, t)}
                 </div>
               </div>
             </div>
@@ -453,7 +459,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
             else l.remove()
           })
         }}
-        title={heatmapVisible ? 'Hide heatmap' : 'Show heatmap'}
+        title={heatmapVisible ? t.map.hideHeatmap : t.map.showHeatmap}
         style={{
           position: 'absolute', top: 12, right: 140,
           zIndex: 1000, height: 44, padding: '0 18px',
@@ -469,7 +475,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
           whiteSpace: 'nowrap',
         }}
       >
-        Heatmap
+        {t.map.heatmapLabel}
       </button>
 
       {/* Denied toast */}
@@ -480,7 +486,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
           padding: '8px 16px', borderRadius: 8, zIndex: 3000,
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
         }}>
-          {lang === 'DE' ? 'Standortzugriff verweigert' : 'Location access denied'}
+          {t.map.locationDenied}
         </div>
       )}
 
@@ -498,10 +504,10 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
           </svg>
         </button>
-        <MapStyles active={active} onSelect={setActive} />
+        <MapStyles active={active} onSelect={setActive} lang={lang} />
       </div>
 
-      <Legend lang={lang} />
+      {heatmapVisible && <Legend lang={lang} />}
 
       <MapContainer
         center={BAMBERG}
@@ -529,10 +535,10 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
             fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
               .then(r => r.json())
               .then(d => {
-                const name = d.address?.city || d.address?.town || d.address?.village || d.address?.suburb || 'Dieser Ort'
+                const name = d.address?.city || d.address?.town || d.address?.village || d.address?.suburb || t.map.thisPlace
                 fetchWeather(lat, lng, name)
               })
-              .catch(() => fetchWeather(lat, lng, 'Dieser Ort'))
+              .catch(() => fetchWeather(lat, lng, t.map.thisPlace))
           })
         }}
       >

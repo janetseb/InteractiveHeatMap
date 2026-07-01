@@ -79,13 +79,13 @@ const TRAIL_TYPES = [
   { key: 'hiking', icon: 'mountain' },
 ]
 
-function ChipIcon({ icon }) {
+function ChipIcon({ icon, isActive }) {
   const common = { width: 18, height: 18, fill: 'none', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }
-  if (icon === 'layers') return (
-    <svg {...common} viewBox="0 0 24 24" stroke="currentColor">
-      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-      <polyline points="2 17 12 22 22 17"/>
-      <polyline points="2 12 12 17 22 12"/>
+  if (icon === 'bike') return (
+    <svg {...common} viewBox="0 0 24 24" stroke={isActive ? '#6366F1' : 'currentColor'}>
+      <circle cx="5.5" cy="17.5" r="3.5"/>
+      <circle cx="18.5" cy="17.5" r="3.5"/>
+      <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5V14l-3-3 4-3 2 3h3"/>
     </svg>
   )
   if (icon === 'mountain') return (
@@ -94,17 +94,17 @@ function ChipIcon({ icon }) {
     </svg>
   )
   if (icon === 'bike') return (
-    <svg {...common} viewBox="0 0 24 24" stroke="currentColor">
-      <circle cx="5.5" cy="17.5" r="3.5"/>
-      <circle cx="18.5" cy="17.5" r="3.5"/>
-      <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5V14l-3-3 4-3 2 3h3"/>
-    </svg>
-  )
+  <svg {...common} viewBox="0 0 24 24" stroke="inherit">
+    <circle cx="5.5" cy="17.5" r="3.5"/>
+    <circle cx="18.5" cy="17.5" r="3.5"/>
+    <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5V14l-3-3 4-3 2 3h3"/>
+  </svg>
+)
   return null
 }
 
 
-function ElevationChart({ elevationProfile, heatProfile }) {
+function ElevationChart({ elevationProfile, heatProfile, t }) {
   if (!elevationProfile) return null
   const results = elevationProfile?.results
   if (!Array.isArray(results) || results.length < 2) return null
@@ -150,7 +150,7 @@ function ElevationChart({ elevationProfile, heatProfile }) {
   return (
     <div style={{ marginTop: 10, marginBottom: 4 }}>
       <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 5, fontWeight: 500 }}>
-        Höhenprofil · {min}m – {max}m
+        {t.sidebar.elevationProfile} · {min}m – {max}m
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="60" style={{ display: 'block', borderRadius: 6, overflow: 'hidden' }}>
         {segments.map((seg, i) => (
@@ -161,7 +161,7 @@ function ElevationChart({ elevationProfile, heatProfile }) {
         ))}
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 4, fontWeight: 500 }}>
-        <span>Start</span><span>Ende</span>
+        <span>{t.sidebar.start}</span><span>{t.sidebar.end}</span>
       </div>
     </div>
   )
@@ -181,17 +181,27 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
   const [searchLoading, setSearchLoading] = useState(false)
   const searchTimerRef = useRef(null)
   const panelRef = useRef(null)
-  const selectedRowRef = useRef(null)
+  const selectedDetailRef = useRef(null)
 
   const t = translations[lang]
-  useEffect(() => {
-    if (open && selectedTrail && selectedRowRef.current) {
-      setTimeout(() => {
-        selectedRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      }, 80)
-    }
-  }, [open, selectedTrail])
 
+useEffect(() => {
+  if (selectedTrail && !open) {
+    setOpen(true)
+  }
+}, [selectedTrail, open, setOpen])
+
+useEffect(() => {
+  if (selectedTrail && open) {
+    setTimeout(() => {
+      const filterPanel = document.querySelector('.filter-panel')
+      const trailDetail = filterPanel?.querySelector('.trail-detail')
+      if (filterPanel && trailDetail) {
+        filterPanel.scrollTop = trailDetail.offsetTop - 150
+      }
+    }, 100)
+  }
+}, [selectedTrail?.id, open])
 
   useEffect(() => {
     if (!open) return
@@ -239,15 +249,15 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
   }
 
   const handleReset = () => {
-    onFiltersChange({ trailType: 'All', maxLength: 30, heatFilter: 'All', search: '' })
+    onFiltersChange({ trailType: 'All', maxLength: 30, minHeat: 0, search: '' })
     onSelectTrail(null)
   }
 
   const filteredTrails = trails.filter(tr =>
-    (filters.trailType === 'All' || tr.trail_type === filters.trailType) &&
-    Number(tr.length_km) <= filters.maxLength &&
-    (filters.heatFilter === 'All' || tr.hitzetauglichkeit >= Number(filters.heatFilter))
-  )
+  (filters.trailType === 'All' || tr.trail_type === filters.trailType) &&
+  Number(tr.length_km) <= filters.maxLength &&
+  (filters.heatFilter === 'All' || tr.hitzetauglichkeit >= filters.minHeat)
+)
 
   return (
     <div ref={panelRef} style={{ position: 'relative' }}>
@@ -287,14 +297,14 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
               autoFocus
               value={searchQuery}
               onChange={e => handleSearch(e.target.value)}
-              placeholder={lang === 'DE' ? 'Orte oder Wege suchen' : 'Search places or trails'}
+              placeholder={t.searchPlaceholder}
               style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Inter', sans-serif", fontSize: 15, color: '#1e293b' }}
             />
           </div>
           {(searchResults.length > 0 || searchLoading) && (
             <div style={{ borderTop: '1px solid #f1f3f4', maxHeight: 260, overflowY: 'auto' }}>
               {searchLoading && (
-                <div style={{ padding: '12px 16px', fontSize: 13, color: '#94a3b8' }}>Suche...</div>
+                <div style={{ padding: '12px 16px', fontSize: 13, color: '#94a3b8' }}>{t.sidebar.searching}</div>
               )}
               {searchResults.map((r, i) => (
                 <div key={i} onClick={() => handleSelectResult(r)} style={{
@@ -324,7 +334,7 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
               <line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="#0f172a"/>
             </svg>
           </span>
-          <span className="filter-btn__label">Filter</span>
+          <span className="filter-btn__label">{t.sidebar.filters}</span>
         </button>
       )}
 
@@ -338,11 +348,11 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
                 <line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="#0f172a"/>
                 <line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="#0f172a"/>
               </svg>
-              Filter
+              {t.sidebar.filters}
             </div>
             <div className="filter-panel__header-actions">
 
-              <button className="filter-panel__close" onClick={() => setOpen(false)}>×</button>
+              <button className="filter-panel__close" onClick={() => { setOpen(false); onSelectTrail(null) }}>×</button>
             </div>
           </div>
 
@@ -356,7 +366,7 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
                   className={`filter-panel__chip ${filters.trailType === key ? 'filter-panel__chip--active' : ''}`}
                   onClick={() => { onFiltersChange({ ...filters, trailType: key }); onSelectTrail(null) }}
                 >
-                  <ChipIcon icon={icon} />
+                  <ChipIcon icon={icon} isActive={filters.trailType === key && key === 'cycling'} />
                   {t.trailTypes[key] || key}
                 </button>
               ))}
@@ -365,20 +375,28 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
 
           <div className="filter-panel__divider" />
 
-          {/* Heat filter */}
+         {/* Heat filter */}
           <div className="filter-panel__section">
-            <div className="filter-panel__label">Hitzetauglichkeit</div>
-            <div className="filter-panel__chip-grid">
-              {HEAT_FILTERS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  className={`filter-panel__chip ${filters.heatFilter === key ? 'filter-panel__chip--active' : ''}`}
-                  onClick={() => { onFiltersChange({ ...filters, heatFilter: key }); onSelectTrail(null) }}
-                >
-                  <HeatIcon level={key === 'All' ? null : key} />
-                  {label}
-                </button>
-              ))}
+            <div className="filter-panel__label">
+              <span>{t.sidebar.heatSuitability}</span>
+              <span style={{
+                background: '#F1F5F9', borderRadius: 12, padding: '10px 16px',
+                fontSize: 14, fontWeight: 600, color: '#0F172A'
+              }}>{filters.minHeat} – 5</span>
+            </div>
+            <input
+              type="range" min={1} max={5} step={1} value={filters.minHeat}
+              onChange={(e) => { onFiltersChange({ ...filters, minHeat: Number(e.target.value) }); onSelectTrail(null) }}
+              style={{
+                width: '100%', margin: "10px 0 6px", cursor: "pointer",
+                WebkitAppearance: 'none', appearance: 'none',
+                height: 6, borderRadius: 3, outline: 'none', border: 'none',
+                background: `linear-gradient(to right, #14B8A6 ${((filters.minHeat - 1) / 4) * 100}%, #E2E8F0 ${((filters.minHeat - 1) / 4) * 100}%)`,
+              }}
+            />
+            <div className="filter-panel__slider-labels">
+              <span>{t.sidebar.heatSuitabilityLow}</span>
+              <span>{t.sidebar.heatSuitabilityHigh}</span>
             </div>
           </div>
 
@@ -424,12 +442,9 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
             const heatColor = trail.heatColor || '#94a3b8'
             return (
               <div key={trail.id}>
-                <div
-                  ref={selectedTrail?.id === trail.id ? selectedRowRef : null}
-                  className={`trail-row ${selectedTrail?.id === trail.id ? 'trail-row--selected' : ''}`}
-                  onClick={() => onSelectTrail(selectedTrail?.id === trail.id ? null : trail)}
-                >
-
+               <div
+                className={`trail-row ${selectedTrail?.id === trail.id ? 'trail-row--selected' : ''}`}
+                onClick={() => onSelectTrail(selectedTrail?.id === trail.id ? null : trail)}>
                   <div className="trail-row__body">
                     <div className="trail-row__name">{trail.trail_name}</div>
                     <div className="trail-row__meta">
@@ -439,8 +454,8 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
                   <span className="trail-row__arrow">›</span>
                 </div>
 
-                {selectedTrail?.id === trail.id && (
-                  <div className="trail-detail">
+                    {selectedTrail?.id === trail.id && (
+                                <div className="trail-detail">
                     <div className="trail-detail__stats">
                       <div className="trail-detail__stat">
                         <div className="trail-detail__stat-value">{Number(trail.length_km).toFixed(2)} {t.sidebar.km}</div>
@@ -460,19 +475,19 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
                     <RatingBar label={t.sidebar.kondition}     value={trail.kondition || 0} />
                     <RatingBar label={t.sidebar.technik}       value={trail.technik || 0} />
                     <RatingBar label={t.sidebar.erlebniswert}  value={trail.erlebniswert || 0} />
-                    <RatingBar label={t.sidebar.hitzetauglich} value={trail.hitzetauglichkeit || 0} color="#EE8C5A" max={4} />
+                    <RatingBar label={t.sidebar.hitzetauglich} value={trail.hitzetauglichkeit || 0} color="#EE8C5A" max={5} />
 
                     <div style={{ marginTop: 10, marginBottom: 4 }}>
                       <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 5, fontWeight: 500 }}>
-                        Komfortprofil
+                        {t.sidebar.temperaturprofil}
                       </div>
                       <HeatProfileBar segments={trail.heat_profile} />
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 4, fontWeight: 500 }}>
-                        <span>Start</span><span>Ende</span>
+                        <span>{t.sidebar.start}</span><span>{t.sidebar.end}</span>
                       </div>
                     </div>
 
-                    <ElevationChart elevationProfile={trail.elevation_profile} heatProfile={trail.heat_profile} />
+                    <ElevationChart elevationProfile={trail.elevation_profile} heatProfile={trail.heat_profile} t={t} />
                     <div className="trail-detail__actions">
                       <button
                         className="trail-detail__action-btn trail-detail__action-btn--secondary"
@@ -533,11 +548,11 @@ export default function Sidebar({ filters, onFiltersChange, lang = 'EN', sidebar
 
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 5, fontWeight: 500 }}>
-                Komfortprofil · ⌀ {selectedTrail.mean_temperature != null ? `${Number(selectedTrail.mean_temperature).toFixed(1)}°C` : '—'}
+                {t.sidebar.temperaturprofil} · ⌀ {selectedTrail.mean_temperature != null ? `${Number(selectedTrail.mean_temperature).toFixed(1)}°C` : '—'}
               </div>
               <HeatProfileBar segments={selectedTrail.heat_profile} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 4, fontWeight: 500 }}>
-                <span>Start</span><span>Ende</span>
+                <span>{t.sidebar.start}</span><span>{t.sidebar.end}</span>
               </div>
             </div>
           </div>
