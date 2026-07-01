@@ -31,12 +31,6 @@ export default function App() {
   if (trail) setSidebarOpen(true) 
   }, [])
 
-  // Moved outside JSX — hooks cannot be called inside JSX
-  const handleSelectTrail = useCallback((trail) => {
-    setSelectedTrail(prev => prev?.id === trail?.id ? null : trail)
-    if (trail) setSidebarOpen(true)
-  }, [])
-
   const enterMap = () => {
     history.pushState({ page: 'map' }, '')
     sessionStorage.setItem('mobi_showMap', 'true')
