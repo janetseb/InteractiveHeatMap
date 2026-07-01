@@ -142,7 +142,7 @@ export default function Map({ filters, lang, trails = [], selectedTrail, onSelec
       .catch(() => {})
   }
 
-  // Loads weather for Bamberg by default on mount.
+  // Loads weather for Bamberg by default
   useEffect(() => {
     fetchWeather(BAMBERG[0], BAMBERG[1])
   }, [])
