@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Deploy to Production
+        run: |
+          gcloud storage cp dist/index.html gs://mobi-bamberg-frontend/
+          gcloud storage cp dist/assets/* gs://mobi-bamberg-frontend/assets/
+          gcloud storage objects update gs://mobi-bamberg-frontend/index.html \
+            --cache-control="no-cache, no-store, must-revalidate"
+          echo "Production URL: https://storage.googleapis.com/mobi-bamberg-frontend/index.html"

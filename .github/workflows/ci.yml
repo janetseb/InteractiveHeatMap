@@ -1,0 +1,50 @@
+name: CI Pipeline + Preview Deploy
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          ls dist/
+          ls dist/assets/
+          echo "Build successful!"
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Deploy to Preview
+        run: |
+          gcloud storage cp dist/index.html gs://interactive-heatmap-preview/
+          gcloud storage cp dist/assets/* gs://interactive-heatmap-preview/assets/
+          gcloud storage objects update gs://interactive-heatmap-preview/index.html \
+            --cache-control="no-cache, no-store, must-revalidate"
+          echo "Preview URL: https://storage.googleapis.com/interactive-heatmap-preview/index.html"
