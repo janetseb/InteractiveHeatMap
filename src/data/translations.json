@@ -35,8 +35,8 @@
       "type": "Type",
       "searching": "Searching...",
       "heatSuitability": "Heat suitability",
-      "heatSuitabilityLow": "1 (suitable)",
-      "heatSuitabilityHigh": "5 (very suitable)",
+      "heatSuitabilityLow": "1 (Not suitable)",
+      "heatSuitabilityHigh": "5 (Very suitable)",
       "start": "Start",
       "end": "End",
       "elevationProfile": "Elevation profile"
