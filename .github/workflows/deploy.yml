@@ -22,6 +22,7 @@ jobs:
       - name: Build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_BASE_URL: https://storage.googleapis.com/mobi-bamberg-frontend/
         run: npm run build
 
       - name: Authenticate to GCP

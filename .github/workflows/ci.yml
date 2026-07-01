@@ -25,6 +25,7 @@ jobs:
       - name: Build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_BASE_URL: https://storage.googleapis.com/interactive-heatmap-preview/
         run: npm run build
 
       - name: Verify build output
