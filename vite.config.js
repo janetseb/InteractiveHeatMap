@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: 'https://storage.googleapis.com/mobi-bamberg-frontend/',
+  base: process.env.VITE_BASE_URL || 'https://storage.googleapis.com/mobi-bamberg-frontend/',
 })
