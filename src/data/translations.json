@@ -116,7 +116,7 @@
       "type": "Typ",
       "searching": "Suche...",
       "heatSuitability": "Hitzetauglichkeit",
-      "heatSuitabilityLow": "1 (geeignet)",
+      "heatSuitabilityLow": "1 (Nicht geeignet)",
       "heatSuitabilityHigh": "5 (Sehr geeignet)",
       "start": "Start",
       "end": "Ende",
